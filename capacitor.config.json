@@ -1,0 +1,13 @@
+{
+  "appId": "com.kstau.thefirstgame",
+  "appName": "The First Game",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  },
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    }
+  }
+}
