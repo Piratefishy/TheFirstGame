@@ -1,7 +1,9 @@
 import Phaser from 'phaser';
 import { MenuScene } from './scenes/MenuScene.js';
 import { GameScene } from './scenes/GameScene.js';
+import { GameSceneSimple } from './scenes/GameSceneSimple.js';
 import { ResultsScene } from './scenes/ResultsScene.js';
+import { LoreScene } from './scenes/LoreScene.js';
 
 // Mobile configuration
 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -34,7 +36,7 @@ const config = {
     input: {
         activePointers: isMobile ? 3 : 1 // Support for multi-touch on mobile
     },
-    scene: [MenuScene, GameScene, ResultsScene]
+    scene: [MenuScene, LoreScene, GameSceneSimple, GameScene, ResultsScene]
 };
 
 // Start the game
