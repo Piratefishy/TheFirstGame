@@ -50,17 +50,17 @@ export class LoreScene extends Phaser.Scene {
     }
 
     createLoreTextures() {
-        // Parchment background
+        // Parchment background - lighter for better text contrast
         const parchmentGraphics = this.add.graphics();
-        parchmentGraphics.fillGradientStyle(0xF4E4BC, 0xF4E4BC, 0xE6D3A3, 0xE6D3A3, 1);
+        parchmentGraphics.fillGradientStyle(0xFFF8DC, 0xFFF8DC, 0xF5E6D3, 0xF5E6D3, 1);
         parchmentGraphics.fillRect(0, 0, 600, 400);
         
-        // Add aging effects
-        parchmentGraphics.fillStyle(0xD2B48C, 0.3);
-        for (let i = 0; i < 50; i++) {
+        // Add aging effects - more subtle
+        parchmentGraphics.fillStyle(0xE6D3A3, 0.2);
+        for (let i = 0; i < 30; i++) {
             const x = Math.random() * 600;
             const y = Math.random() * 400;
-            parchmentGraphics.fillCircle(x, y, Math.random() * 3);
+            parchmentGraphics.fillCircle(x, y, Math.random() * 2);
         }
         
         // Border decoration
@@ -130,36 +130,47 @@ export class LoreScene extends Phaser.Scene {
     }
 
     createContentArea(width, height) {
-        // Main parchment background
+        // Main parchment background - larger and better positioned
         this.parchment = this.add.image(width / 2, height / 2, 'parchment');
-        this.parchment.setScale(Math.min(width / 700, height / 500));
+        this.parchment.setScale(Math.min(width / 600, height / 400));
 
-        // Title area
-        this.titleText = this.add.text(width / 2, height * 0.25, '', {
-            fontSize: '32px',
+        // Title area - positioned higher to avoid overlap
+        this.titleText = this.add.text(width / 2, height * 0.18, '', {
+            fontSize: '28px',
             fontFamily: 'Arial Black',
             color: '#8B0000',
-            stroke: '#000000',
+            stroke: '#FFD700',
             strokeThickness: 2,
             align: 'center',
-            fontStyle: 'bold'
+            fontStyle: 'bold',
+            shadow: { offsetX: 2, offsetY: 2, color: '#000000', blur: 4, fill: true }
         });
         this.titleText.setOrigin(0.5);
 
-        // Content text area
-        this.contentText = this.add.text(width / 2, height / 2, '', {
-            fontSize: '16px',
-            fontFamily: 'Arial',
-            color: '#2F1B14',
-            align: 'center',
-            lineSpacing: 8,
-            wordWrap: { width: 500, useAdvancedWrap: true }
+        // Content text area - positioned lower and with better styling
+        this.contentText = this.add.text(width / 2, height * 0.55, '', {
+            fontSize: '15px',
+            fontFamily: 'Georgia, serif',
+            color: '#1a1a1a',
+            stroke: '#ffffff',
+            strokeThickness: 0.5,
+            align: 'left',
+            lineSpacing: 6,
+            wordWrap: { width: 450, useAdvancedWrap: true },
+            shadow: { offsetX: 1, offsetY: 1, color: '#cccccc', blur: 2, fill: true }
         });
         this.contentText.setOrigin(0.5);
 
-        // Decorative runes
-        this.add.image(width / 2 - 250, height * 0.25, 'runes').setScale(0.8).setAlpha(0.7);
-        this.add.image(width / 2 + 250, height * 0.25, 'runes').setScale(0.8).setAlpha(0.7).setFlipX(true);
+        // Decorative runes - repositioned to not overlap
+        this.add.image(width / 2 - 280, height * 0.18, 'runes').setScale(0.6).setAlpha(0.8);
+        this.add.image(width / 2 + 280, height * 0.18, 'runes').setScale(0.6).setAlpha(0.8).setFlipX(true);
+        
+        // Add decorative borders around content
+        const borderGraphics = this.add.graphics();
+        borderGraphics.lineStyle(2, 0x8B4513, 0.8);
+        borderGraphics.strokeRoundedRect(width / 2 - 260, height * 0.35, 520, 280, 10);
+        borderGraphics.lineStyle(1, 0xFFD700, 0.6);
+        borderGraphics.strokeRoundedRect(width / 2 - 265, height * 0.33, 530, 290, 12);
     }
 
     createNavigation(width, height) {
@@ -209,7 +220,9 @@ export class LoreScene extends Phaser.Scene {
         this.pageIndicator = this.add.text(width / 2, height * 0.85, '', {
             fontSize: '14px',
             fontFamily: 'Arial',
-            color: '#8B4513'
+            color: '#000000',
+            stroke: '#FFFFFF',
+            strokeThickness: 1
         });
         this.pageIndicator.setOrigin(0.5);
 
