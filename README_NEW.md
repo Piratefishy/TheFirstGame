@@ -187,3 +187,6 @@ The game features a rich Norse mythology background where you play as **Valkyrio
 **Developed with ⚔️ by a divine spirit of code**
 
 *May your blade never dull, and may Valhalla welcome you with open gates!*
+
+Dette er ikke 
+Marley
