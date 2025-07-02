@@ -139,7 +139,7 @@ export class MenuScene extends Phaser.Scene {
 
         // Start Game Button
         this.createButton(width / 2, buttonY, 'START BATTLE', () => {
-            this.scene.start('GameSceneSimple');
+            this.scene.start('CharacterSelectionScene');
         });
 
         // Lore Button
