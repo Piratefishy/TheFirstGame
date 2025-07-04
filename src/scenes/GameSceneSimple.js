@@ -69,108 +69,186 @@ export class GameSceneSimple extends Phaser.Scene {
         this.createDamageEffects();
     }
 
+    init(data) {
+        console.log('GameSceneSimple: init() called with data:', data);
+        // Store data from scene transition
+        this.sceneData = data;
+    }
+
     create() {
         console.log('GameSceneSimple: Starting create() method...');
         
-        // Get selected class from character selection screen
-        const selectedClass = this.registry.get('selectedClass');
-        const selectedWeapon = this.registry.get('selectedWeapon');
-        
-        console.log('Selected class:', selectedClass, 'Selected weapon:', selectedWeapon);
-        
-        if (!selectedClass) {
-            console.log('No class selected, redirecting to CharacterSelectionScene');
-            // If no class selected, go back to selection screen
-            this.scene.start('CharacterSelectionScene');
-            return;
-        }
-
         try {
-            console.log('Initializing systems...');
+            // Get selected class from multiple sources with more robust checking
+            let selectedClass = null;
+            let selectedWeapon = null;
             
-            // Initialize all enhanced systems
+            // First try scene data (most reliable)
+            if (this.sceneData && this.sceneData.selectedClass) {
+                selectedClass = this.sceneData.selectedClass;
+                selectedWeapon = this.sceneData.selectedWeapon;
+                console.log('Got data from scene init:', selectedClass, selectedWeapon);
+            } 
+            
+            // Try game registry (global Phaser data)
+            if (!selectedClass && this.game && this.game.registry) {
+                selectedClass = this.game.registry.get('selectedClass');
+                selectedWeapon = this.game.registry.get('selectedWeapon');
+                console.log('Got data from game registry:', selectedClass, selectedWeapon);
+            }
+            
+            // Try scene registry
+            if (!selectedClass && this.scene && this.scene.registry) {
+                selectedClass = this.scene.registry.get('selectedClass');
+                selectedWeapon = this.scene.registry.get('selectedWeapon');
+                console.log('Got data from scene registry:', selectedClass, selectedWeapon);
+            }
+            
+            // Try local registry as last resort
+            if (!selectedClass && this.registry) {
+                selectedClass = this.registry.get('selectedClass');
+                selectedWeapon = this.registry.get('selectedWeapon');
+                console.log('Got data from local registry:', selectedClass, selectedWeapon);
+            }
+            
+            console.log('Final selected class:', selectedClass, 'Selected weapon:', selectedWeapon);
+            
+            // If still no class, default to a safe option instead of breaking
+            if (!selectedClass) {
+                console.warn('No class selected in any source, using default archer class');
+                selectedClass = 'archer';
+                selectedWeapon = 'bow';
+                // Store the default for consistency
+                if (this.registry) {
+                    this.registry.set('selectedClass', selectedClass);
+                    this.registry.set('selectedWeapon', selectedWeapon);
+                }
+            }
+            
+            // Store the final values for use throughout the scene
+            this.playerSelectedClass = selectedClass;
+            this.playerSelectedWeapon = selectedWeapon;
+
+            console.log('Initializing basic systems...');
+            
+            // Initialize character classes FIRST - this might be causing the problem
+            console.log('1. Initializing character classes...');
             this.initializeCharacterClasses();
-            this.createAdvancedCombatSounds();
-            this.optimizePerformanceForMassiveBattles();
             
-            // Set up player with selected class
-            this.playerClass = selectedClass;
-            this.playerWeapon = selectedWeapon;
+            // Store player class and weapon
+            this.playerClass = this.playerSelectedClass;
+            this.playerWeapon = this.playerSelectedWeapon;
             
-            console.log('Setting up world...');
+            console.log('2. Setting up basic world...');
             
-            // Set up massive infinite-feeling battlefield (8000x8000)
-            const worldWidth = 4000; // Reduced size for better performance
-            const worldHeight = 4000;
-            // Remove world bounds for infinite feel
+            // Set up smaller world for testing
+            const worldWidth = 2000; 
+            const worldHeight = 2000;
             this.physics.world.setBounds(-worldWidth, -worldHeight, worldWidth * 2, worldHeight * 2);
 
             const { width: screenWidth, height: screenHeight } = this.cameras.main;
 
-            console.log('Creating background...');
-            // Enhanced background with large texture
-            this.createEnhancedBackground(worldWidth, worldHeight);
+            console.log('3. Creating simple background...');
+            // Very simple background
+            const bg = this.add.rectangle(0, 0, worldWidth * 2, worldHeight * 2, 0x228B22);
+            bg.setDepth(-1);
 
-            console.log('Creating player...');
-            // Create player with selected class
-            this.createPlayerWithSelectedClass();
+            console.log('4. Creating player...');
+            // Create player with minimal setup to test
+            this.createSimplePlayer();
 
-            // Set up camera to follow player with no bounds
+            console.log('5. Setting up camera...');
+            // Set up camera
             this.cameras.main.startFollow(this.player);
             this.cameras.main.setZoom(1);
 
-            console.log('Creating warrior groups...');
-            // Create enemy groups for good vs evil battles
-            this.enemies = this.physics.add.group(); // Still for player collision
+            console.log('6. Creating basic groups...');
+            // Create basic groups
+            this.enemies = this.physics.add.group();
             this.goodWarriors = this.physics.add.group();
             this.evilWarriors = this.physics.add.group();
 
-            console.log('Spawning initial warriors...');
-            // Spawn good warriors fighting evil ones across the large battlefield
-            this.spawnBattlingWarriors(worldWidth, worldHeight);
-
-            // Collision
-            this.physics.add.overlap(this.player, this.enemies, this.hitEnemy, null, this);
-
-            console.log('Creating UI...');
-            // Enhanced UI (fixed to screen)
-            this.createEnhancedUI(screenWidth, screenHeight);
-
-            console.log('Setting up controls...');
-            // Controls
-            this.setupControls();
-
-            console.log('Starting timer...');
-            // Game timer
-            this.startEnhancedTimer();
-
-            console.log('Creating effects...');
-            // Add atmospheric effects
-            this.createAtmosphericEffects();
-            this.createMassiveBattleEffects();
-
-            // Smart warrior density management (using new culling system)
-            this.time.addEvent({
-                delay: 2000, // Every 2 seconds - slower for stability
-                callback: this.maintainWarriorDensityAroundPlayer,
-                callbackScope: this,
-                loop: true
+            console.log('7. Creating basic UI...');
+            // Very basic UI
+            this.scoreText = this.add.text(20, 20, 'Score: 0', {
+                fontSize: '20px',
+                fill: '#FFFFFF'
             });
+            this.scoreText.setScrollFactor(0);
+            this.scoreText.setDepth(1000);
+            
+            this.score = 0;
 
-            // Performance optimization timer
-            this.time.addEvent({
-                delay: 3000, // Every 3 seconds - slower for stability
-                callback: this.updatePerformanceOptimization,
-                callbackScope: this,
-                loop: true
-            });
+            console.log('8. Setting up basic controls...');
+            // Basic controls
+            this.cursors = this.input.keyboard.createCursorKeys();
+            this.wasd = this.input.keyboard.addKeys('W,S,A,D');
 
-            console.log('GameSceneSimple: Successfully created all systems!');
+            console.log('9. Creating few test enemies...');
+            // Create just a few test enemies
+            for (let i = 0; i < 5; i++) {
+                this.createSimpleEnemy(this.player.x + 200 + i * 100, this.player.y + 100);
+            }
+
+            console.log('GameSceneSimple: Successfully created simplified game!');
+            
         } catch (error) {
-            console.error('Error in GameSceneSimple create():', error);
-            // Fallback - go back to menu
-            this.scene.start('MenuScene');
+            console.error('CRITICAL ERROR in GameSceneSimple create():', error);
+            console.error('Error stack:', error.stack);
+            console.log('Attempting fallback to CharacterSelectionScene...');
+            // Fallback - go back to selection screen
+            this.scene.start('CharacterSelectionScene');
         }
+    }
+    
+    createSimplePlayer() {
+        console.log('Creating simple player with class:', this.playerSelectedClass);
+        
+        // Get class data
+        const classData = this.characterClasses[this.playerSelectedClass] || this.characterClasses['archer'];
+        
+        // Create player sprite
+        this.player = this.physics.add.sprite(0, 0, classData.sprite);
+        this.player.setScale(2);
+        this.player.setCollideWorldBounds(true);
+        this.player.setBounce(0.1);
+        
+        // Set basic properties
+        this.player.className = this.playerSelectedClass;
+        this.player.faction = 'good';
+        this.player.maxHp = classData.hp;
+        this.player.hp = classData.hp;
+        this.player.damage = classData.damage;
+        this.player.attackRange = classData.attackRange;
+        this.player.attackCooldown = Math.floor(1000 / classData.attackSpeed);
+        this.player.lastAttackTime = 0;
+        this.player.weapon = this.playerSelectedWeapon;
+        
+        this.player.setDepth(10);
+        this.playerSpeed = classData.speed;
+        
+        console.log('Simple player created successfully');
+    }
+    
+    createSimpleEnemy(x, y) {
+        // Create a simple enemy for testing
+        const enemyClasses = ['berserker', 'assassin', 'tank'];
+        const enemyClass = enemyClasses[Math.floor(Math.random() * enemyClasses.length)];
+        const enemyData = this.characterClasses[enemyClass];
+        
+        const enemy = this.physics.add.sprite(x, y, enemyData.sprite);
+        enemy.setCollideWorldBounds(false);
+        enemy.setDepth(5);
+        enemy.faction = 'evil';
+        enemy.className = enemyClass;
+        enemy.health = enemyData.hp;
+        enemy.maxHealth = enemyData.hp;
+        enemy.damage = enemyData.damage;
+        
+        this.enemies.add(enemy);
+        this.evilWarriors.add(enemy);
+        
+        return enemy;
     }
 
     hitEnemy(player, enemy) {
@@ -244,22 +322,35 @@ export class GameSceneSimple extends Phaser.Scene {
     }
 
     update() {
-        if (this.gameOver || this.paused) return;
+        if (this.gameOver || this.paused || !this.player) return;
 
-        // Player movement with multiple input methods
-        this.updatePlayerMovement();
+        // Simple player movement
+        const speed = this.playerSpeed || 100;
+        let moveX = 0;
+        let moveY = 0;
         
-        // Player auto-attack system (no attack button needed)
-        this.updatePlayerAutoAttack();
+        // Desktop controls (WASD/Arrow keys)
+        if (this.cursors.left.isDown || this.wasd.A.isDown) {
+            moveX = -1;
+        } else if (this.cursors.right.isDown || this.wasd.D.isDown) {
+            moveX = 1;
+        }
 
-        // Update warrior visibility and culling (smart performance)
-        this.updateWarriorVisibilityAndCulling();
-
-        // Update only visible warriors AI for performance
-        this.updateVisibleWarriorAI();
-
-        // Update health bars only for visible warriors
-        this.updateVisibleWarriorHealthBars();
+        if (this.cursors.up.isDown || this.wasd.W.isDown) {
+            moveY = -1;
+        } else if (this.cursors.down.isDown || this.wasd.S.isDown) {
+            moveY = 1;
+        }
+        
+        // Apply movement
+        this.player.setVelocity(moveX * speed, moveY * speed);
+        
+        // Basic game logic
+        if (this.player.hp <= 0) {
+            console.log('Player died!');
+            this.gameOver = true;
+            this.scene.start('MenuScene');
+        }
     }
     
     updatePlayerMovement() {
@@ -303,67 +394,162 @@ export class GameSceneSimple extends Phaser.Scene {
     // ============== AUTO-ATTACK SYSTEM ==============
     
     findNearestEnemyInRange() {
-        if (!this.player || !this.player.active || !this.enemies) return null;
-        
-        let nearestEnemy = null;
-        let nearestDistance = this.player.range;
-        
-        this.enemies.children.entries.forEach(enemy => {
-            if (!enemy.active || enemy.faction === this.player.faction) return;
-            
-            const distance = Phaser.Math.Distance.Between(
-                this.player.x, this.player.y,
-                enemy.x, enemy.y
-            );
-            
-            if (distance <= nearestDistance) {
-                nearestEnemy = enemy;
-                nearestDistance = distance;
+        try {
+            if (!this.player || !this.player.active || !this.enemies) {
+                console.log('Auto-attack: Player or enemies not ready');
+                return null;
             }
-        });
-        
-        return nearestEnemy;
+            
+            if (!this.player.attackRange) {
+                console.log('Auto-attack: Player range not set');
+                return null;
+            }
+            
+            let nearestEnemy = null;
+            let nearestDistance = this.player.attackRange;
+            
+            // Debug: Log enemy count and player stats
+            console.log(`Auto-attack: Checking ${this.enemies.children.entries.length} enemies, player range: ${this.player.attackRange}, player faction: ${this.player.faction}`);
+            
+            this.enemies.children.entries.forEach(enemy => {
+                if (!enemy.active) return;
+                
+                if (enemy.faction === this.player.faction) return; // Skip same faction
+                
+                const distance = Phaser.Math.Distance.Between(
+                    this.player.x, this.player.y,
+                    enemy.x, enemy.y
+                );
+                
+                if (distance <= nearestDistance) {
+                    nearestEnemy = enemy;
+                    nearestDistance = distance;
+                }
+            });
+            
+            if (nearestEnemy) {
+                console.log(`Auto-attack: Found target at distance ${nearestDistance}`);
+            } else {
+                console.log('Auto-attack: No enemies in range');
+            }
+            
+            return nearestEnemy;
+        } catch (error) {
+            console.error('findNearestEnemyInRange error:', error);
+            return null;
+        }
     }
     
     updatePlayerAutoAttack() {
-        if (!this.player || !this.player.active) return;
-        
-        const currentTime = this.time.now;
-        
-        // Check if attack is off cooldown
-        if (currentTime - this.player.lastAttackTime < this.player.attackCooldown) {
-            return;
+        try {
+            if (!this.player || !this.player.active) {
+                console.log('Auto-attack: Player not ready');
+                return;
+            }
+            
+            const currentTime = this.time.now;
+            
+            // Check if attack is off cooldown
+            if (currentTime - this.player.lastAttackTime < this.player.attackCooldown) {
+                return;
+            }
+            
+            console.log('Auto-attack: Looking for targets...');
+            
+            // Find nearest enemy in range
+            const target = this.findNearestEnemyInRange();
+            if (!target) {
+                // Hide target indicator if no target
+                if (this.targetIndicator) {
+                    this.targetIndicator.setVisible(false);
+                }
+                return;
+            }
+            
+            console.log('Auto-attack: Target found, attempting attack...');
+            
+            // Show target indicator
+            this.showTargetIndicator(target);
+            
+            // Perform attack
+            this.performPlayerAttack(target);
+            this.player.lastAttackTime = currentTime;
+            
+            console.log('Auto-attack: Attack completed successfully');
+            
+        } catch (error) {
+            console.error('Auto-attack system error:', error);
+            console.error('Error stack:', error.stack);
         }
-        
-        // Find nearest enemy in range
-        const target = this.findNearestEnemyInRange();
-        if (!target) return;
-        
-        // Perform attack
-        this.performPlayerAttack(target);
-        this.player.lastAttackTime = currentTime;
+    }
+    
+    showTargetIndicator(target) {
+        try {
+            if (!target) return;
+            
+            if (!this.targetIndicator) {
+                // Create target indicator (red circle around enemy being targeted)
+                this.targetIndicator = this.add.graphics();
+            }
+            
+            this.targetIndicator.clear();
+            this.targetIndicator.lineStyle(2, 0xFFAA44, 0.6); // Orange instead of red, more subtle
+            this.targetIndicator.strokeCircle(target.x, target.y, 20); // Smaller circle
+            this.targetIndicator.setDepth(7);
+            this.targetIndicator.setVisible(true);
+            
+            // Pulse effect
+            this.tweens.killTweensOf(this.targetIndicator);
+            this.tweens.add({
+                targets: this.targetIndicator,
+                scaleX: 1.2,
+                scaleY: 1.2,
+                duration: 200,
+                yoyo: true,
+                repeat: 1
+            });
+        } catch (error) {
+            console.error('showTargetIndicator error:', error);
+        }
     }
     
     performPlayerAttack(target) {
-        if (!target || !target.active || !this.player) return;
-        
-        // Apply damage using the advanced damage system
-        const damageDealt = this.applyAdvancedDamage(this.player, target, this.playerWeapon || 'physical');
-        
-        // Create visual effects
-        this.createAdvancedWeaponEffects(this.player, target, this.playerWeapon || 'physical');
-        this.createDamageNumber(target.x, target.y - 20, damageDealt, '#FF4444');
-        
-        // Create attack feedback for player
-        this.createAttackFeedback(this.player, target);
-        
-        // Check if enemy is killed
-        if (target.health <= 0) {
-            this.score += 10;
-            this.scoreText.setText('Score: ' + this.score);
-            this.createDeathEffect(target);
-            this.destroyWarriorWithHealthBar(target);
-            this.spawnEnemyOffscreen();
+        try {
+            if (!target || !target.active || !this.player) {
+                console.log('performPlayerAttack: Invalid target or player');
+                return;
+            }
+            
+            console.log('performPlayerAttack: Applying damage...');
+            
+            // Apply damage using the advanced damage system
+            const damageDealt = this.applyAdvancedDamage(this.player, target, this.playerWeapon || 'physical');
+            
+            console.log('performPlayerAttack: Creating visual effects...');
+            
+            // Create visual effects
+            this.createAdvancedWeaponEffects(this.player, target, this.playerWeapon || 'physical');
+            this.createDamageNumber(target.x, target.y - 20, damageDealt, '#FF4444');
+            
+            console.log('performPlayerAttack: Creating attack feedback...');
+            
+            // Create attack feedback for player
+            this.createAttackFeedback(this.player, target);
+            
+            console.log('performPlayerAttack: Checking if enemy is killed...');
+            
+            // Check if enemy is killed
+            if (target.health <= 0) {
+                this.score += 10;
+                this.scoreText.setText('Score: ' + this.score);
+                this.createDeathEffect(target);
+                this.destroyWarriorWithHealthBar(target);
+                this.spawnEnemyOffscreen();
+            }
+            
+            console.log('performPlayerAttack: Attack completed');
+        } catch (error) {
+            console.error('performPlayerAttack error:', error);
         }
     }
     
@@ -414,6 +600,12 @@ export class GameSceneSimple extends Phaser.Scene {
                 const faction = Math.random() < 0.5 ? 'good' : 'evil';
                 const warrior = this.createWarriorFromPool(x, y, faction);
                 
+                // CRITICAL: Add enemies to this.enemies group for auto-attack to work
+                if (warrior.faction !== this.player.faction) {
+                    this.enemies.add(warrior);
+                    console.log(`Added enemy warrior (${warrior.faction}) to enemies group`);
+                }
+                
                 // Set warriors to be looking for combat immediately
                 warrior.aiState = 'seek';
                 warrior.lastStateChange = this.time.now;
@@ -458,7 +650,15 @@ export class GameSceneSimple extends Phaser.Scene {
 
     createNPCWarrior(x, y, faction) {
         // Use the new smart pooling system
-        return this.createWarriorFromPool(x, y, faction);
+        const warrior = this.createWarriorFromPool(x, y, faction);
+        
+        // CRITICAL: Add enemies to this.enemies group for auto-attack to work
+        if (warrior && warrior.faction !== this.player.faction) {
+            this.enemies.add(warrior);
+            console.log(`Added NPC enemy (${warrior.faction}) to enemies group`);
+        }
+        
+        return warrior;
     }
 
     maintainBattlefieldDensity() {
@@ -545,18 +745,114 @@ export class GameSceneSimple extends Phaser.Scene {
     }
 
     initializeCharacterClasses() {
-        // Simplified character class definitions that work
+        // Same character class definitions as CharacterSelectionScene
         this.characterClasses = {
-            'archer': { hp: 70, damage: 20, speed: 130, range: 100, cooldown: 900, sprite: 'elf_1', anim: 'elf_walk' },
-            'swordsman': { hp: 100, damage: 25, speed: 95, range: 55, cooldown: 1100, sprite: 'knight_1', anim: 'knight_walk' },
-            'dual_wielder': { hp: 90, damage: 30, speed: 85, range: 65, cooldown: 800, sprite: 'dwarf_1', anim: 'dwarf_walk' },
-            'shield_warrior': { hp: 100, damage: 25, speed: 95, range: 55, cooldown: 1100, sprite: 'knight_1', anim: 'knight_walk' },
-            'axeman': { hp: 90, damage: 30, speed: 85, range: 65, cooldown: 800, sprite: 'dwarf_1', anim: 'dwarf_walk' },
-            'dual_axe': { hp: 90, damage: 30, speed: 85, range: 65, cooldown: 800, sprite: 'dwarf_1', anim: 'dwarf_walk' },
+            // GOOD WARRIOR CLASSES
+            archer: {
+                sprite: 'elf_1',
+                anim: 'elf_walk',
+                hp: 80,
+                damage: 25,
+                speed: 120,
+                weapon: 'bow',
+                special: 'ranged_attack',
+                attackRange: 200,
+                attackSpeed: 1.5
+            },
+            swordsman: {
+                sprite: 'knight_1',
+                anim: 'knight_walk',
+                hp: 120,
+                damage: 35,
+                speed: 100,
+                weapon: 'two_hand_sword',
+                special: 'heavy_strike',
+                attackRange: 60,
+                attackSpeed: 1.0
+            },
+            dual_wielder: {
+                sprite: 'dwarf_1',
+                anim: 'dwarf_walk',
+                hp: 100,
+                damage: 30,
+                speed: 110,
+                weapon: 'dual_swords',
+                special: 'flurry_attack',
+                attackRange: 50,
+                attackSpeed: 2.0
+            },
+            shield_warrior: {
+                sprite: 'knight_1',
+                anim: 'knight_walk',
+                hp: 150,
+                damage: 20,
+                speed: 80,
+                weapon: 'sword_and_shield',
+                special: 'shield_bash',
+                attackRange: 45,
+                attackSpeed: 0.8,
+                defense: 0.3
+            },
+            axeman: {
+                sprite: 'dwarf_1',
+                anim: 'dwarf_walk',
+                hp: 130,
+                damage: 40,
+                speed: 90,
+                weapon: 'two_hand_axe',
+                special: 'cleave_attack',
+                attackRange: 65,
+                attackSpeed: 0.8
+            },
+            dual_axe: {
+                sprite: 'dwarf_1',
+                anim: 'dwarf_walk',
+                hp: 110,
+                damage: 35,
+                speed: 105,
+                weapon: 'dual_axes',
+                special: 'whirlwind',
+                attackRange: 55,
+                attackSpeed: 1.8
+            },
             
-            'berserker': { hp: 110, damage: 28, speed: 80, range: 70, cooldown: 900, sprite: 'orc_1', anim: 'orc_walk' },
-            'assassin': { hp: 60, damage: 22, speed: 150, range: 50, cooldown: 600, sprite: 'goblin_1', anim: 'goblin_walk' },
-            'tank': { hp: 150, damage: 40, speed: 60, range: 80, cooldown: 1500, sprite: 'troll_1', anim: 'troll_walk' }
+            // EVIL CREATURE CLASSES
+            berserker: {
+                sprite: 'orc_1',
+                anim: 'orc_walk',
+                hp: 140,
+                damage: 45,
+                speed: 130,
+                weapon: 'brutal_axe',
+                special: 'rage_mode',
+                attackRange: 50,
+                attackSpeed: 2.5,
+                rageBonus: 1.5
+            },
+            assassin: {
+                sprite: 'goblin_1',
+                anim: 'goblin_walk',
+                hp: 70,
+                damage: 50,
+                speed: 150,
+                weapon: 'poison_daggers',
+                special: 'stealth_strike',
+                attackRange: 40,
+                attackSpeed: 3.0,
+                critChance: 0.3
+            },
+            tank: {
+                sprite: 'troll_1',
+                anim: 'troll_walk',
+                hp: 200,
+                damage: 30,
+                speed: 60,
+                weapon: 'massive_club',
+                special: 'ground_slam',
+                attackRange: 80,
+                attackSpeed: 0.6,
+                defense: 0.4
+            }
         };
     }
 
@@ -1159,41 +1455,89 @@ export class GameSceneSimple extends Phaser.Scene {
     }
 
     createPlayerWithSelectedClass() {
-        // Create player sprite
-        this.player = this.physics.add.sprite(0, 0, 'player_1');
-        this.player.setCollideWorldBounds(false);
-        this.player.setDepth(10);
-        this.player.faction = 'good'; // Default faction
-        this.playerFaction = 'good';
-        this.playerSpeed = 100;
+        console.log('Creating player with selected class:', this.playerSelectedClass);
         
-        // Set player stats based on selected class with proper attack properties
-        let classStats;
-        if (this.playerClass === 'Elf Archer') {
-            classStats = { hp: 80, damage: 25, speed: 140, range: 120, cooldown: 800 };
-            this.player.className = 'archer';
-        } else if (this.playerClass === 'Human Knight') {
-            classStats = { hp: 120, damage: 30, speed: 100, range: 60, cooldown: 1000 };
-            this.player.className = 'swordsman';
-        } else if (this.playerClass === 'Dwarf Berserker') {
-            classStats = { hp: 110, damage: 35, speed: 90, range: 70, cooldown: 700 };
-            this.player.className = 'berserker';
-        } else {
-            // Fallback
-            classStats = { hp: 100, damage: 25, speed: 100, range: 60, cooldown: 1000 };
-            this.player.className = 'swordsman';
+        // Validate that character classes are initialized
+        if (!this.characterClasses || Object.keys(this.characterClasses).length === 0) {
+            console.error('Character classes not initialized!');
+            this.initializeCharacterClasses();
         }
         
-        // Apply stats to player
-        this.player.health = classStats.hp;
-        this.player.maxHealth = classStats.hp;
+        // Get class data from our character classes
+        const classData = this.characterClasses[this.playerSelectedClass];
+        if (!classData) {
+            console.error('Invalid class data for:', this.playerSelectedClass);
+            console.log('Available classes:', Object.keys(this.characterClasses));
+            // Use default archer class
+            this.playerSelectedClass = 'archer';
+            const fallbackData = this.characterClasses['archer'];
+            if (!fallbackData) {
+                console.error('Even fallback class not found! Character classes:', this.characterClasses);
+                return;
+            }
+        }
+        
+        const finalClassData = this.characterClasses[this.playerSelectedClass];
+        console.log('Using class data:', finalClassData);
+        
+        // Set player stats based on selected class
+        const classStats = {
+            hp: finalClassData.hp,
+            damage: finalClassData.damage,
+            speed: finalClassData.speed,
+            range: finalClassData.attackRange,
+            cooldown: Math.floor(1000 / finalClassData.attackSpeed)
+        };
+        
+        // Set player faction - player is always good
+        this.playerFaction = 'good';
+        
+        // Create player sprite with correct class sprite
+        console.log('Creating player sprite with:', finalClassData.sprite);
+        this.player = this.physics.add.sprite(4000, 4000, finalClassData.sprite);
+        this.player.setScale(2); // Make player a bit larger
+        this.player.setCollideWorldBounds(true);
+        this.player.setBounce(0.1);
+        
+        // Set player properties
+        this.player.className = this.playerSelectedClass;
+        this.player.faction = this.playerFaction;
+        this.player.maxHp = classStats.hp;
+        this.player.hp = classStats.hp;
         this.player.damage = classStats.damage;
-        this.player.range = classStats.range;
+        this.player.attackRange = classStats.range;
         this.player.attackCooldown = classStats.cooldown;
         this.player.lastAttackTime = 0;
+        this.player.weapon = this.playerSelectedWeapon;
+        
+        console.log('Player created with stats:', {
+            class: this.player.className,
+            faction: this.player.faction,
+            hp: this.player.hp,
+            damage: this.player.damage,
+            range: this.player.attackRange
+        });
+        
+        // Set depth and physics
+        this.player.setDepth(10);
         this.playerSpeed = classStats.speed;
         
-        this.player.play('player_walk');
+        // Start with correct animation if available
+        if (finalClassData.anim && this.anims.exists(finalClassData.anim)) {
+            this.player.play(finalClassData.anim);
+        } else {
+            console.warn('Animation not found:', finalClassData.anim);
+        }
+        
+        // Create attack range indicator (subtle circle)
+        this.attackRangeIndicator = this.add.graphics();
+        this.attackRangeIndicator.lineStyle(1, 0x4444FF, 0.2); // More subtle blue, thinner line
+        this.attackRangeIndicator.strokeCircle(0, 0, this.player.attackRange);
+        this.attackRangeIndicator.setDepth(1);
+        
+        // Make the range indicator follow the player
+        this.attackRangeIndicator.x = this.player.x;
+        this.attackRangeIndicator.y = this.player.y;
     }
 
     createEnhancedUI(screenWidth, screenHeight) {
@@ -1236,6 +1580,52 @@ export class GameSceneSimple extends Phaser.Scene {
         this.battleIntensityText.setOrigin(0.5);
         this.battleIntensityText.setScrollFactor(0);
         this.battleIntensityText.setDepth(1001);
+
+        // Player health bar
+        this.createPlayerHealthBar();
+    }
+
+    createPlayerHealthBar() {
+        // Player health bar background
+        this.playerHealthBg = this.add.rectangle(120, 120, 200, 20, 0x660000, 0.8);
+        this.playerHealthBg.setScrollFactor(0);
+        this.playerHealthBg.setDepth(1000);
+        
+        // Player health bar
+        this.playerHealthBar = this.add.rectangle(120, 120, 200, 20, 0x00AA00, 0.9);
+        this.playerHealthBar.setScrollFactor(0);
+        this.playerHealthBar.setDepth(1001);
+        
+        // Player health text
+        this.playerHealthText = this.add.text(120, 120, `HP: ${this.player.hp}/${this.player.maxHp}`, {
+            fontSize: '14px',
+            fontFamily: 'Arial Black',
+            color: '#FFFFFF'
+        });
+        this.playerHealthText.setOrigin(0.5);
+        this.playerHealthText.setScrollFactor(0);
+        this.playerHealthText.setDepth(1002);
+    }
+    
+    updatePlayerHealthBar() {
+        if (!this.player || !this.playerHealthBar) return;
+        
+        const healthPercent = Math.max(0, this.player.hp / this.player.maxHp);
+        
+        // Update health bar width
+        this.playerHealthBar.scaleX = healthPercent;
+        
+        // Update health bar color based on health
+        if (healthPercent > 0.6) {
+            this.playerHealthBar.setFillStyle(0x00AA00); // Green
+        } else if (healthPercent > 0.3) {
+            this.playerHealthBar.setFillStyle(0xAAAA00); // Yellow
+        } else {
+            this.playerHealthBar.setFillStyle(0xAA0000); // Red
+        }
+        
+        // Update health text
+        this.playerHealthText.setText(`HP: ${Math.round(this.player.hp)}/${this.player.maxHp}`);
     }
 
     setupControls() {
@@ -1636,9 +2026,66 @@ export class GameSceneSimple extends Phaser.Scene {
         this.returnWarriorToPool(warrior);
     }
 
-    updateVisibleWarriorHealthBars() {
-        // Only update health bars for visible warriors
-        // This is a placeholder - health bars will be optimized separately
+    createDeathEffect(warrior) {
+        if (!warrior) return;
+        
+        // Create blood splatter effect
+        for (let i = 0; i < 5; i++) {
+            const blood = this.add.image(
+                warrior.x + (Math.random() - 0.5) * 40,
+                warrior.y + (Math.random() - 0.5) * 40,
+                'blood'
+            );
+            blood.setTint(0x8B0000);
+            blood.setScale(0.5 + Math.random() * 0.5);
+            blood.setDepth(8);
+            
+            this.tweens.add({
+                targets: blood,
+                alpha: 0,
+                scale: blood.scaleX * 2,
+                duration: 1500,
+                onComplete: () => blood.destroy()
+            });
+        }
+        
+        // Add sparks for dramatic effect
+        for (let i = 0; i < 3; i++) {
+            const spark = this.add.image(
+                warrior.x + (Math.random() - 0.5) * 30,
+                warrior.y + (Math.random() - 0.5) * 30,
+                'spark'
+            );
+            spark.setTint(0xFFD700);
+            spark.setScale(0.3 + Math.random() * 0.4);
+            spark.setDepth(9);
+            
+            this.tweens.add({
+                targets: spark,
+                y: spark.y - 30,
+                alpha: 0,
+                duration: 800,
+                onComplete: () => spark.destroy()
+            });
+        }
+    }
+    
+    destroyWarriorWithHealthBar(warrior) {
+        if (!warrior) return;
+        
+        // Remove warrior from groups
+        if (warrior.faction === 'good' && this.goodWarriors) {
+            this.goodWarriors.remove(warrior);
+        } else if (warrior.faction === 'evil' && this.evilWarriors) {
+            this.evilWarriors.remove(warrior);
+        }
+        
+        if ( this.enemies) {
+            this.enemies.remove(warrior);
+        }
+        
+        // Destroy the warrior sprite
+        warrior.destroy();
     }
 
     // ============== SMART WARRIOR POOLING SYSTEM ==============
@@ -1778,6 +2225,7 @@ export class GameSceneSimple extends Phaser.Scene {
         [...this.goodWarriors.children.entries, ...this.evilWarriors.children.entries].forEach(warrior => {
             if (!warrior.active) return;
             
+
             const distance = Phaser.Math.Distance.Between(playerX, playerY, warrior.x, warrior.y);
             
             if (distance > removeRadius) {

@@ -3,6 +3,11 @@ import { MenuScene } from './scenes/MenuSceneClean.js';
 // import { GameScene } from './scenes/GameScene.js'; // Temporarily disabled due to syntax errors
 import { CharacterSelectionScene } from './scenes/CharacterSelectionScene.js';
 import { GameSceneSimple } from './scenes/GameSceneSimple.js';
+import { GameSceneSimpleMinimal } from './scenes/GameSceneSimpleMinimal.js';
+import { GameSceneSimpleFast } from './scenes/GameSceneSimpleFast.js';
+import { GameSceneSimpleTest } from './scenes/GameSceneSimpleTest.js';
+import { GameSceneSimpleWorking } from './scenes/GameSceneSimpleWorking.js';
+import { GameSceneSimpleWorkingEnhanced } from './scenes/GameSceneSimpleWorkingEnhanced.js';
 import { ResultsScene } from './scenes/ResultsScene.js';
 import { LoreScene } from './scenes/LoreScene.js';
 
@@ -37,7 +42,7 @@ const config = {
     input: {
         activePointers: isMobile ? 3 : 1 // Support for multi-touch on mobile
     },
-    scene: [MenuScene, LoreScene, CharacterSelectionScene, GameSceneSimple, ResultsScene]
+    scene: [MenuScene, LoreScene, CharacterSelectionScene, GameSceneSimpleWorkingEnhanced, GameSceneSimpleWorking, GameSceneSimpleTest, GameSceneSimpleFast, GameSceneSimpleMinimal, GameSceneSimple, ResultsScene]
 };
 
 // Start the game
